@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pipelines-insights"
+version = "0.0.1"
+requires-python = ">3.7"
+readme = "README.md"
+dependencies = [
+    "PyYAML==6.0.1",
+]
+authors = [
+    {'name'="Enzo Conejero", 'email'="enzoconejero0@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/enzoconejero/pipelines-insights"
