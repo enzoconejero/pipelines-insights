@@ -1,2 +1,2 @@
 # pipelines-insights
-Create, amnage and analyze pipelines
+Create, manage and analyze pipelines

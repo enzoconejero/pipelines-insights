@@ -1,0 +1,9 @@
+name: Linear Rutine
+nodes:
+  - name: Wake up
+  - name: Live
+  - name: Sleep
+
+dependencies:
+  Wake Up: Live
+  Live: Sleep
