@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Dict, Set
 
+from pipelines_insights.drawer import Drawer
 from pipelines_insights.utils import basic_equals, read_yml, enlist, enset
 
 
@@ -75,3 +76,7 @@ class Pipeline:
 
     def __eq__(self, other):
         return basic_equals(self, other)
+
+    def draw(self):
+        """Create a graph representing visually the pipeline"""
+        return Drawer.from_pipeline(self).draw()

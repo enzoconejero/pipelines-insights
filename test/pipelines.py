@@ -1,14 +1,10 @@
 # Dummy test
-from pathlib import Path
-
 from pipelines_insights.pipelines import Pipeline, Node
-
-testdir = Path(__file__).parent
-pipelinesdirs = testdir / 'pipelines'
+from test import pipelinesdirs
 
 linear = Pipeline(
     name='Linear Rutine',
-    nodes=[Node('Wake up'), Node('Live'), Node('Sleep')],
+    nodes=[Node('Wake Up'), Node('Live'), Node('Sleep')],
     dependencies={
         'Wake Up': {'Live'},
         'Live': {'Sleep'},
@@ -75,3 +71,6 @@ def test_from_yml():
     p = Pipeline.from_yml(pipelinesdirs / 'rutine.yml')
     assert p == linear
 
+
+def test_draw():
+    linear.draw()

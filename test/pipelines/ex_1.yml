@@ -1,0 +1,15 @@
+name: Example 1
+nodes:
+  - name: N1
+  - name: N2
+  - name: N3
+  - name: N4
+  - name: N5
+  - name: N6
+
+dependencies:
+  N1: [N4, N5]
+  N2: [N3, N6]
+  N3: [N6]
+  N4: [N6]
+  N5: [N6]

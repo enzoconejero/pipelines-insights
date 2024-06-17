@@ -4,8 +4,12 @@ dist
 *.egg-info
 .idea
 __pycache__
+
 # Environment
 venv
+
+# Temporals and test
+temp
 
 # Secrets and credentials
 pypi-test-auth

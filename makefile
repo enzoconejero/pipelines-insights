@@ -1,5 +1,5 @@
 clean:
-	rm -rf build dist *.egg-info
+	rm -rf build dist *.egg-info temp
 
 
 build: clean

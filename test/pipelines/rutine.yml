@@ -1,6 +1,6 @@
 name: Linear Rutine
 nodes:
-  - name: Wake up
+  - name: Wake Up
   - name: Live
   - name: Sleep
 
