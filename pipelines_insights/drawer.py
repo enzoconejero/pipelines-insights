@@ -8,10 +8,21 @@ from drawsvg import Drawing, Lines, Line, Rectangle, Text, Marker, DrawingElemen
 __all__ = ['Drawer']
 
 LEVEL_GAP_X = 20
-LEVEL_GAP_Y = 20
-NODE_HEIGHT = 30
+LEVEL_GAP_Y = 10
+FONT_FAMILY = 'Arial'
+FONT_SIZE = 8
+GAP_FACTOR = 1.8
 
 TEMPDIR = Path(__file__).parents[1] / 'temp'
+
+
+def textdim(text: str, font: str = FONT_FAMILY, size: int = FONT_SIZE):
+    # https://docs.python.org/3/library/tkinter.font.html
+    import tkinter
+    import tkinter.font
+    tkinter.Frame()  # Init
+    _font = tkinter.font.Font(family=font, size=size)
+    return _font.measure(text), _font.metrics('linespace')
 
 
 class Draw:
@@ -39,21 +50,26 @@ class NodeRect(Draw):
 
     def as_svg_elems(self) -> List[DrawingElement]:
         """Generate list of SVG elements to draw"""
-        rect = Rectangle(x=self.x, y=self.y, width=self.width(), height=self.height(), fill='red')
-        text = Text(self.name, 6, self.x + (self.width() - self.text_width()) / 2, self.y + self.height() / 2)
+        rect = Rectangle(x=self.x, y=self.y, width=self.width(), height=self.height(), fill='red', rx=2)
+        text = Text(self.name, FONT_SIZE, self.x + self.width() / 2, self.y + self.height() / 2, font_family=FONT_FAMILY, center=True)
         arrs = [Arrow(*self.arrow_start(), *n.arrow_end()) for n in self.nexts]
-        return [rect, text, *[a.as_svg_elems()[0] for a in arrs]]
+        return [*[a.as_svg_elems()[0] for a in arrs], rect, text]
 
     def width(self):
         """Full width of rect, text + border + gap"""
-        return self.text_width() + 15
+        return self.text_width() * GAP_FACTOR
 
     def height(self):
         """Full height of rect, text + border + gap"""
-        return NODE_HEIGHT
+        return self.text_height() * GAP_FACTOR
 
     def text_width(self):
-        return len(self.name) * 6
+        """Width of the rendered text"""
+        return textdim(self.name)[0]
+
+    def text_height(self):
+        """Height of the rendered text"""
+        return textdim(self.name)[1]
 
     def arrow_start(self):
         """Point where arrow starts to dependents"""
@@ -62,6 +78,10 @@ class NodeRect(Draw):
     def arrow_end(self):
         """Point wherere arrow reachs from parents"""
         return self.x, self.y + self.height() / 2
+
+    def y_max(self):
+        """Max Y coord of the node"""
+        return self.y + self.height()
 
     def set_initial_position(self):
         self.x = self.level_x.x_start()
@@ -84,32 +104,72 @@ class Arrow(Draw):
         return f'Arrow({self.x_start, self.y_start} -> {self.x_end, self.y_end})'
 
     def as_svg_elems(self) -> List[DrawingElement]:
-        # TODO, consider offset to fix the end of the line is thicker than the end of the arrow
-        end = Marker(-4, -2, 0, 2)
-        end.append(Lines(-4, 2, 0, 0, -4, -2, fill='blue', close=True))
-        return [Line(self.x_start, self.y_start, self.x_end, self.y_end, stroke='black', marker_end=end)]
+        arr_width = 4
+        arr_height = 2
+        end = Marker(
+            minx=-arr_width / 2,
+            miny=-arr_width,
+            maxx=arr_width / 2,
+            maxy=arr_height
+        )
+        end.append(Lines(
+            -arr_width / 2, arr_height,  # start on top of the line
+            arr_width / 2, 0,  # end of the line
+            -arr_width / 2, -arr_height,  # bottom of the line
+            fill='blue',
+            close=True,)
+        )
+
+        # A little of linear algebra to short the line so don't overlap with the arrow end
+        # Real lenght
+        len_x = self.x_end - self.x_start
+        len_y = self.y_end - self.y_start
+        len_ = (len_x ** 2 + len_y ** 2) ** 0.5
+
+        # Director vector (dir_x ** 2 + dir_y ** 2) == 1
+        dir_x = len_x / len_
+        dir_y = len_y / len_
+
+        # Shor lenght 0.5 arrow width
+        newlen = len_ - arr_width * 0.5
+        xend = self.x_start + dir_x * newlen
+        yend = self.y_start + dir_y * newlen
+
+        # Alternative method with stroke_dassharray... dont like it much
+        # len_ = (len_x**2 + len_y**2) ** 0.5 - arr_width * 0.5
+        # return [Line(self.x_start, self.y_start, self.x_end, self.y_end, stroke='black', marker_end=end, stroke_dasharray=len_)]
+        return [Line(self.x_start, self.y_start, xend, yend, stroke='black', marker_end=end)]
 
 
 class XLevel:
     """Container of the nodes of a level"""
+
     def __init__(self, nodes: List[NodeRect], level: int):
         self.nodes: List[NodeRect] = nodes or []
         self.level: int = level
         self.other_levels: List[XLevel] = []
-        
+
     def max_width(self):
+        """Width of the wider node"""
         return max(n.width() for n in self.nodes)
-    
+
     def x_start(self) -> float:
+        """Min x where all nodes start to draw"""
         if self.level == 0:
             return 0
-        
-        return self.other_levels[self.level-1].x_end() + LEVEL_GAP_X
-        
+
+        return self.other_levels[self.level - 1].x_end() + LEVEL_GAP_X
+
     def x_end(self) -> float:
+        """Max x where the wider node ends"""
         return self.x_start() + self.max_width()
 
+    def max_height(self):
+        """Height of the taller elem"""
+        return max(n.y_max() for n in self.nodes)
+
     def set_initial_positions(self):
+        """First iteration to draw. RUN THIS before render"""
         for node in self.nodes:
             node.set_initial_position()
 
@@ -155,23 +215,23 @@ class Drawer:
     def __init__(self, levels: List[List[str]], dependencies: Dict[str, List[str]]):
         self.levels: List[List[str]] = levels
         self.dependencies: Dict[str, List[str]] = dependencies  # k needs v
-        
+
         self.draws = []
 
     def draw(self):
         # TODO sort modes
         _map = dict()
         levels = []
-        
+
         # Instance levels
         for x, nodes in enumerate(self.levels):
             nodes_in_level = []
-            
+
             for y, node in enumerate(nodes):
                 svg = NodeRect(node, order_y=y)
                 _map[node] = svg
                 nodes_in_level.append(svg)
-            
+
             level = XLevel(nodes_in_level, x)
             levels.append(level)
             for node in nodes_in_level:
@@ -180,7 +240,7 @@ class Drawer:
         # Set reference to other levels
         for level in levels:
             level.other_levels = levels
-        
+
         # Set the references to dependencies inside the DrawNodes
         for parent, sons in self.dependencies.items():
             _map[parent].nexts = [_map[s] for s in sons]
@@ -197,7 +257,7 @@ class Drawer:
             for node in level.nodes:
                 self.draws.extend(node.as_svg_elems())
 
-        canvas = Drawing(600, 300, style='background-color: #dedede')
+        canvas = Drawing(levels[-1].x_end(), max(lv.max_height() for lv in levels), style='background-color: #dedede')
         canvas.extend(self.draws)
         os.makedirs(TEMPDIR, exist_ok=True)
         canvas.save_html(TEMPDIR / 'draw.html')

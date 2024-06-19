@@ -10,6 +10,7 @@ readme = "README.md"
 dependencies = [
     "PyYAML==6.0.1",
     "drawsvg==2.3.0",
+    "tk",
 ]
 authors = [
     {'name'="Enzo Conejero", 'email'="enzoconejero0@gmail.com"},
